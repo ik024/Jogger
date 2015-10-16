@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <group android:checkableBehavior="single">
+
+        <item android:id="@+id/home"
+            android:title="@string/nav_opt_title_home"
+            android:checked="true"
+            android:icon="@mipmap/ic_launcher"/>
+
+        <item android:id="@+id/friends"
+            android:title="@string/nav_opt_title_friends"
+            android:checked="true"
+            android:icon="@mipmap/ic_launcher"/>
+
+        <item android:id="@+id/history"
+            android:title="@string/nav_opt_title_history"
+            android:checked="true"
+            android:icon="@mipmap/ic_launcher"/>
+
+    </group>
+
+</menu>
