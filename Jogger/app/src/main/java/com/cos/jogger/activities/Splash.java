@@ -16,6 +16,7 @@ public class Splash extends AppCompatActivity {
     private final String TAG = Splash.class.getSimpleName();
 
     AccessTokenTracker mAccessTokenTracker;
+    boolean checkedAndLauncheActivity = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,18 +46,26 @@ public class Splash extends AppCompatActivity {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+
+        //calling this here as for the first time AccessToken call back wont get called.
+        callLoginOrHomeActivity(AccessToken.getCurrentAccessToken());
     }
 
     private void callLoginOrHomeActivity(AccessToken accessToken){
-        Logger.d(TAG, "callLoginOrHomeActivity called");
-        if(accessToken != null){//user already logged in go to HomeActivity
-            Intent intent = new Intent(Splash.this, HomeActivity.class);
-            startActivity(intent);
-            finish();
-        }else{//user not logged in go to LoginActivty
-            Intent intent = new Intent(Splash.this, LoginActivity.class);
-            startActivity(intent);
-            finish();
+        if(!checkedAndLauncheActivity) {//to prevent from calling two times
+            checkedAndLauncheActivity = true;
+            Logger.d(TAG, "callLoginOrHomeActivity called");
+            if (accessToken != null) {//user already logged in go to HomeActivity
+                Intent intent = new Intent(Splash.this, HomeActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                startActivity(intent);
+                finish();
+            } else {//user not logged in go to LoginActivty
+                Intent intent = new Intent(Splash.this, LoginActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                startActivity(intent);
+                finish();
+            }
         }
     }
 

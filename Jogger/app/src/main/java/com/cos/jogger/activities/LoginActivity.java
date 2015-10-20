@@ -47,17 +47,21 @@ public class LoginActivity extends AppCompatActivity {
         loginButton.registerCallback(callbackManager, new FacebookCallback<LoginResult>() {
             @Override
             public void onSuccess(LoginResult loginResult) {
-
+                Logger.i(TAG, "FB login onSuccess");
+                Intent intent = new Intent(LoginActivity.this, LoginActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                startActivity(intent);
+                finish();
             }
 
             @Override
             public void onCancel() {
-
+                Logger.i(TAG, "FB login onCancel");
             }
 
             @Override
             public void onError(FacebookException error) {
-
+                Logger.i(TAG, "FB login onError: "+error.toString());
             }
         });
 

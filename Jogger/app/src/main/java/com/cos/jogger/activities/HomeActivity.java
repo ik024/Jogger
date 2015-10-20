@@ -1,10 +1,12 @@
 package com.cos.jogger.activities;
 
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.design.widget.NavigationView;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentTransaction;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
-import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
@@ -12,8 +14,11 @@ import android.view.MenuItem;
 import android.view.View;
 
 import com.cos.jogger.R;
+import com.cos.jogger.fragments.HomeTab;
+import com.cos.jogger.fragments.MapTab;
+import com.cos.jogger.fragments.RecordFragment;
 
-public class HomeActivity extends AppCompatActivity {
+public class HomeActivity extends AppCompatActivity implements RecordFragment.OnFragmentInteractionListener, HomeTab.OnFragmentInteractionListener, MapTab.OnFragmentInteractionListener{
 
     private final String TAG = HomeActivity.class.getSimpleName();
 
@@ -26,12 +31,7 @@ public class HomeActivity extends AppCompatActivity {
         setContentView(R.layout.activity_home);
         toolbar = (Toolbar) findViewById(R.id.toolbar); // Attaching the layout to the toolbar object
         setSupportActionBar(toolbar);
-        final ActionBar actionBar = getSupportActionBar();
-
-        /*if (actionBar != null) {
-            actionBar.setHomeAsUpIndicator(R.drawable.com_facebook_close);
-            actionBar.setDisplayHomeAsUpEnabled(true);
-        }*/
+        getSupportActionBar().setDisplayShowTitleEnabled(false);
 
         drawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
 
@@ -66,6 +66,14 @@ public class HomeActivity extends AppCompatActivity {
 
         //calling sync state is necessay or else your hamburger icon wont show up
         actionBarDrawerToggle.syncState();
+
+        //get instance of record fragment
+        Fragment recordFragment = RecordFragment.newInstance();
+
+        //show record fragment by default
+        FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
+        ft.add(R.id.container, recordFragment, "recordFragment");
+        ft.commit();
     }
 
     @Override
@@ -77,5 +85,10 @@ public class HomeActivity extends AppCompatActivity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onFragmentInteraction(Uri uri) {
+
     }
 }

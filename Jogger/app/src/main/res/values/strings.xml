@@ -17,4 +17,10 @@
     <string name="nav_opt_title_friends">Friends</string>
     <string name="openDrawer">Open Drawer</string>
     <string name="closeDrawer">Open Drawer</string>
+
+<!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="home_tab_duration_label">Duration</string>
+    <string name="home_tab_pace_label">Pace</string>
+    <string name="homw_tab_distance_label">Distance</string>
 </resources>
