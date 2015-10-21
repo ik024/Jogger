@@ -7,12 +7,15 @@ import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
 
 import com.cos.jogger.R;
 
 public class HomeTab extends Fragment {
 
     private OnFragmentInteractionListener mListener;
+
+    TextView timer;
 
     public static Fragment newInstance() {
         HomeTab fragment = new HomeTab();
@@ -31,6 +34,8 @@ public class HomeTab extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.home_tab, container, false);
+        timer = (TextView) view.findViewById(R.id.timer);
+
         return view;
     }
 

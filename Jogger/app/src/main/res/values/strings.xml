@@ -23,4 +23,6 @@
     <string name="home_tab_duration_label">Duration</string>
     <string name="home_tab_pace_label">Pace</string>
     <string name="homw_tab_distance_label">Distance</string>
+    <string name="chronometer_initial_format">%s</string>
+
 </resources>

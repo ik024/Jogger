@@ -1,25 +1,28 @@
 package com.cos.jogger.fragments;
 
 import android.animation.Animator;
-import android.animation.ValueAnimator;
+import android.animation.ObjectAnimator;
 import android.app.Activity;
 import android.graphics.Color;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentStatePagerAdapter;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.view.ViewPager;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewAnimationUtils;
 import android.view.ViewGroup;
 import android.view.animation.AccelerateDecelerateInterpolator;
-import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.cos.jogger.R;
 import com.cos.jogger.activities.SlidingTabLayout;
+import com.cos.jogger.utils.Util;
 
 public class RecordFragment extends Fragment {
 
@@ -28,9 +31,9 @@ public class RecordFragment extends Fragment {
     ViewPagerAdapter mViewPagerAdapter;
     ViewPager mViewPager;
     SlidingTabLayout tabs;
-    LinearLayout controlRootLayout;
-    TextView fab;
-    boolean start;
+    RelativeLayout controlRootLayout;
+    TextView start, stop, pause, resume;
+    boolean started, enableStartClick, enablePauseClick, enableStopClick, enableResumeClick;
 
     public static Fragment newInstance() {
         RecordFragment fragment = new RecordFragment();
@@ -50,108 +53,171 @@ public class RecordFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.record_layout, container, false);
-        fab = (TextView) view.findViewById(R.id.fab_start);
+
+        //initialize view pager object
         mViewPagerAdapter  = new ViewPagerAdapter(getChildFragmentManager());
+
+        //get reference of views on the layout
+        start = (TextView) view.findViewById(R.id.start);
+        pause = (TextView) view.findViewById(R.id.pause);
+        stop = (TextView) view.findViewById(R.id.stop);
+        resume = (TextView) view.findViewById(R.id.resume);
         mViewPager = (ViewPager) view.findViewById(R.id.pager);
         tabs = (SlidingTabLayout) view.findViewById(R.id.tabs);
+        controlRootLayout = (RelativeLayout) view.findViewById(R.id.control_root_layout);
+
+        //set pager adapter
         mViewPager.setAdapter(mViewPagerAdapter);
+
+        //will space out the tabs width evenly
         tabs.setDistributeEvenly(true);
+
+        //tabs title color
         tabs.setCustomTabColorizer(new SlidingTabLayout.TabColorizer() {
             @Override
             public int getIndicatorColor(int position) {
-                return getResources().getColor(R.color.tabsScrollColor);
+                return ContextCompat.getColor(getActivity(), R.color.colorAccent);
             }
         });
+
+        //add tabs to view pager
         tabs.setViewPager(mViewPager);
 
-        controlRootLayout = (LinearLayout) view.findViewById(R.id.control_root_layout);
+        //initial background color
         controlRootLayout.setBackgroundColor(Color.WHITE);
 
-        fab.setOnClickListener(new View.OnClickListener() {
+        initializeAllClickListeners();
 
-            @Override
-            public void onClick(View v) {
-                Animator layoutAnimator = null;
-                if(!start) {
-                    start = true;
-                    layoutAnimator = ViewAnimationUtils.createCircularReveal(
-                            controlRootLayout,
-                            controlRootLayout.getWidth() / 2,
-                            controlRootLayout.getHeight() / 2,
-                            0,
-                            (float) Math.hypot(controlRootLayout.getWidth(), controlRootLayout.getHeight()));
-                }else{
-                    start = false;
-                    layoutAnimator = ViewAnimationUtils.createCircularReveal(
-                            controlRootLayout,
-                            controlRootLayout.getWidth() / 2,
-                            controlRootLayout.getHeight() / 2,
-                            (float) Math.hypot(controlRootLayout.getWidth(), controlRootLayout.getHeight()),
-                            0);
-
-                }
-                controlRootLayout.setVisibility(View.VISIBLE);
-                layoutAnimator.setInterpolator(new AccelerateDecelerateInterpolator());
-                if (controlRootLayout.getVisibility() == View.VISIBLE) {
-                    layoutAnimator.setDuration(1000);
-                    layoutAnimator.start();
-                    controlRootLayout.setBackgroundColor(getResources().getColor(R.color.colorAccent));
-                    controlRootLayout.setEnabled(true);
-                }
-                layoutAnimator.addListener(new Animator.AnimatorListener() {
-                    @Override
-                    public void onAnimationStart(Animator animation) {
-
-                    }
-
-                    @Override
-                    public void onAnimationEnd(Animator animation) {
-                        if(start){
-                            controlRootLayout.setBackgroundColor(getResources().getColor(R.color.colorAccent));
-                        }else{
-                            controlRootLayout.setBackgroundColor(Color.WHITE);
-                        }
-                    }
-
-                    @Override
-                    public void onAnimationCancel(Animator animation) {
-
-                    }
-
-                    @Override
-                    public void onAnimationRepeat(Animator animation) {
-
-                    }
-                });
-
-            }
-        });
         return view;
     }
 
-    private void animateChangeInColor() {
-        final float[] from = new float[3],
-                to =   new float[3];
+    private void initializeAllClickListeners() {
+        enableStartClick = true;
 
-        Color.colorToHSV(Color.parseColor("#FFFFFFFF"), from);   // from white
-        Color.colorToHSV(Color.parseColor("#FF4081"), to);     // to pink
-
-        ValueAnimator anim = ValueAnimator.ofFloat(0, 1);   // animate from 0 to 1
-        anim.setDuration(200);                              // for 300 ms
-
-        final float[] hsv  = new float[3];                  // transition color
-        anim.addUpdateListener(new ValueAnimator.AnimatorUpdateListener(){
-            @Override public void onAnimationUpdate(ValueAnimator animation) {
-                // Transition along each axis of HSV (hue, saturation, value)
-                hsv[0] = from[0] + (to[0] - from[0])*animation.getAnimatedFraction();
-                hsv[1] = from[1] + (to[1] - from[1])*animation.getAnimatedFraction();
-                hsv[2] = from[2] + (to[2] - from[2])*animation.getAnimatedFraction();
-
-                controlRootLayout.setBackgroundColor(Color.HSVToColor(hsv));
+        start.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(enableStartClick) {
+                    enableStartClick = false;
+                    enablePauseClick = true;
+                    enableStopClick = true;
+                    stop.setVisibility(View.VISIBLE);
+                    pause.setVisibility(View.VISIBLE);
+                    resume.setVisibility(View.GONE);
+                    animateBackgroundColorChange(controlRootLayout.getWidth() / 2, controlRootLayout.getHeight() / 2);
+                }
             }
         });
 
-        anim.start();
+        pause.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(enablePauseClick) {
+                    enablePauseClick = false;
+                    enableResumeClick = true;
+                    pause.setVisibility(View.GONE);
+                    resume.setVisibility(View.VISIBLE);
+                }
+            }
+        });
+
+        stop.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(enableStopClick) {
+                    enableStopClick = false;
+                    enablePauseClick = false;
+                    enableResumeClick = false;
+                    enableStartClick = true;
+                    resume.setVisibility(View.GONE);
+                    animateBackgroundColorChange((controlRootLayout.getWidth() - ((int) Util.dipToPixels(getActivity(), 30) + (stop.getWidth() / 2))),
+                            controlRootLayout.getHeight() / 2);
+                }
+            }
+        });
+
+        resume.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(enableResumeClick) {
+                    enableResumeClick = false;
+                    enablePauseClick = true;
+                    resume.setVisibility(View.GONE);
+                    pause.setVisibility(View.VISIBLE);
+                }
+            }
+        });
+
+    }
+
+    private void animateBackgroundColorChange(int centerX, int centerY){
+        Animator layoutAnimator = null;
+        if(!started) {
+            started = true;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                layoutAnimator = ViewAnimationUtils.createCircularReveal(
+                        controlRootLayout,
+                        centerX,
+                        centerY,
+                        0,
+                        (float) Math.hypot(controlRootLayout.getWidth(), controlRootLayout.getHeight()));
+
+            }else{
+                layoutAnimator = ObjectAnimator.ofInt(controlRootLayout,
+                        "backgroundColor",
+                        Color.parseColor("#ffffff"),
+                        Color.parseColor("#FF4081"));
+            }
+        }else{
+            started = false;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                layoutAnimator = ViewAnimationUtils.createCircularReveal(
+                        controlRootLayout,
+                        centerX,
+                        centerY,
+                        (float) Math.hypot(controlRootLayout.getWidth(), controlRootLayout.getHeight()),
+                        0);
+            }else{
+                layoutAnimator = ObjectAnimator.ofInt(controlRootLayout,
+                        "backgroundColor",
+                        Color.parseColor("#FF4081"),
+                        Color.parseColor("#ffffff"));
+            }
+
+        }
+        controlRootLayout.setVisibility(View.VISIBLE);
+        layoutAnimator.setInterpolator(new AccelerateDecelerateInterpolator());
+        if (controlRootLayout.getVisibility() == View.VISIBLE) {
+            layoutAnimator.setDuration(1000);
+            layoutAnimator.start();
+            controlRootLayout.setBackgroundColor(ContextCompat.getColor(getActivity(), R.color.colorAccent));
+            controlRootLayout.setEnabled(true);
+        }
+        layoutAnimator.addListener(new Animator.AnimatorListener() {
+            @Override
+            public void onAnimationStart(Animator animation) {
+
+            }
+
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                if (started) {
+                    controlRootLayout.setBackgroundColor(ContextCompat.getColor(getActivity(), R.color.colorAccent));
+                } else {
+                    controlRootLayout.setBackgroundColor(Color.WHITE);
+                }
+            }
+
+            @Override
+            public void onAnimationCancel(Animator animation) {
+
+            }
+
+            @Override
+            public void onAnimationRepeat(Animator animation) {
+
+            }
+        });
     }
 
     // TODO: Rename method, update argument and hook method into UI event
@@ -199,7 +265,7 @@ public class RecordFragment extends Fragment {
                 Fragment tab1 = HomeTab.newInstance();
                 return tab1;
             }
-            else             // As we are having 2 tabs if the position is now 0 it must be 1 so we are returning second tab
+            else  // As we are having 2 tabs if the position is now 0 it must be 1 so we are returning second tab
             {
                 Fragment tab2 = MapTab.newInstance();
                 return tab2;
@@ -207,7 +273,6 @@ public class RecordFragment extends Fragment {
         }
 
         // This method return the titles for the Tabs in the Tab Strip
-
         @Override
         public CharSequence getPageTitle(int position) {
             return title[position];
