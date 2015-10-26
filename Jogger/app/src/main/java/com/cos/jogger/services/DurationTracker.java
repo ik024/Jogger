@@ -1,18 +1,24 @@
 package com.cos.jogger.services;
 
+import android.app.Notification;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
 import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.SystemClock;
+import android.support.v7.app.NotificationCompat;
 
+import com.cos.jogger.R;
+import com.cos.jogger.activities.HomeActivity;
 import com.cos.jogger.interfaces.IDurationUpdate;
 import com.cos.jogger.utils.Logger;
 
 public class DurationTracker extends Service {
 
     private static final String TAG = DurationTracker.class.getSimpleName();
+    private static final int NOTIFICATION_ID = 9000;
     private final IBinder mBinder = new LocalBinder();
 
     private static Handler customHandler = null;
@@ -47,6 +53,8 @@ public class DurationTracker extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Logger.d(TAG, "onStartCommand");
+        runAsForeground();
+
         startTimer();
 
         return START_STICKY;
@@ -109,5 +117,20 @@ public class DurationTracker extends Service {
         public DurationTracker getServiceInstance(){
             return DurationTracker.this;
         }
+    }
+
+    private void runAsForeground(){
+        Intent notificationIntent = new Intent(this, HomeActivity.class);
+        PendingIntent pendingIntent=PendingIntent.getActivity(this, 0,
+                notificationIntent, Intent.FLAG_ACTIVITY_NEW_TASK);
+
+        Notification notification=new NotificationCompat.Builder(this)
+                .setSmallIcon(R.drawable.nav_settings)
+                .setContentTitle("Tracking...")
+                .setContentText("Keep running !")
+                .setContentIntent(pendingIntent).build();
+
+        startForeground(NOTIFICATION_ID, notification);
+
     }
 }

@@ -15,7 +15,7 @@ public class HomeTab extends Fragment {
 
     private OnFragmentInteractionListener mListener;
 
-    public static TextView timerTextView;
+    public static TextView timerTextView, timermsTextView;
 
     public static Fragment newInstance() {
         HomeTab fragment = new HomeTab();
@@ -40,7 +40,7 @@ public class HomeTab extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.home_tab, container, false);
         timerTextView = (TextView) view.findViewById(R.id.timer);
-
+        timermsTextView = (TextView) view.findViewById(R.id.timerms);
         return view;
     }
 

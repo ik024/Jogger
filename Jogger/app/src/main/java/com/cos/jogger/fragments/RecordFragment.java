@@ -198,7 +198,8 @@ public class RecordFragment extends Fragment implements IDurationUpdate {
                 getActivity().stopService(mDurationTrackerServiceIntent);
 
                 if(HomeTab.timerTextView != null) {
-                    HomeTab.timerTextView.setText("00:00:00");
+                    HomeTab.timerTextView.setText("0:00:00");
+                    HomeTab.timermsTextView.setText("000");
                 }
             }
         });
@@ -316,9 +317,10 @@ public class RecordFragment extends Fragment implements IDurationUpdate {
     public void updateDuration(int hour, int min, int sec, int ms) {
         Logger.d(TAG, "updateDuration");
         if(HomeTab.timerTextView != null) {
-            HomeTab.timerTextView.setText("" + min + ":"
-                    + String.format("%02d", sec) + ":"
-                    + String.format("%03d", ms));
+            HomeTab.timerTextView.setText("" + hour + ":"
+                    + String.format("%02d", min) + ":"
+                    + String.format("%02d", sec));
+            HomeTab.timermsTextView.setText(""+ms);
         }
     }
 
