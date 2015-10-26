@@ -1,6 +1,7 @@
 package com.cos.jogger.activities;
 
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 
@@ -58,12 +59,22 @@ public class Splash extends AppCompatActivity {
             if (accessToken != null) {//user already logged in go to HomeActivity
                 Intent intent = new Intent(Splash.this, HomeActivity.class);
                 intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                startActivity(intent);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    //startActivity(intent, ActivityOptions.makeSceneTransitionAnimation(this).toBundle());
+                    startActivity(intent);
+                }else{
+                    startActivity(intent);
+                }
                 finish();
             } else {//user not logged in go to LoginActivty
                 Intent intent = new Intent(Splash.this, LoginActivity.class);
                 intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                startActivity(intent);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    //startActivity(intent, ActivityOptions.makeSceneTransitionAnimation(this).toBundle());
+                    startActivity(intent);
+                }else{
+                    startActivity(intent);
+                }
                 finish();
             }
         }

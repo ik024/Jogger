@@ -6,17 +6,17 @@
         <item android:id="@+id/home"
             android:title="@string/nav_opt_title_home"
             android:checked="true"
-            android:icon="@mipmap/ic_launcher"/>
+            android:icon="@drawable/nav_settings"/>
 
         <item android:id="@+id/friends"
             android:title="@string/nav_opt_title_friends"
             android:checked="true"
-            android:icon="@mipmap/ic_launcher"/>
+            android:icon="@drawable/nav_settings"/>
 
         <item android:id="@+id/history"
             android:title="@string/nav_opt_title_history"
             android:checked="true"
-            android:icon="@mipmap/ic_launcher"/>
+            android:icon="@drawable/nav_settings"/>
 
     </group>
 

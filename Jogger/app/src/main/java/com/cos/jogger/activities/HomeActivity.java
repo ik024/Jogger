@@ -36,9 +36,9 @@ public class HomeActivity extends AppCompatActivity implements RecordFragment.On
         drawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
 
         NavigationView view = (NavigationView) findViewById(R.id.navigation_view);
+
         view.setNavigationItemSelectedListener(new NavigationView.OnNavigationItemSelectedListener() {
             @Override public boolean onNavigationItemSelected(MenuItem menuItem) {
-                //Snackbar.make(content, menuItem.getTitle() + " pressed", Snackbar.LENGTH_LONG).show();
                 menuItem.setChecked(true);
                 drawerLayout.closeDrawers();
                 return true;

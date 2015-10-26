@@ -1,12 +1,15 @@
 package com.cos.jogger.fragments;
 
 import android.animation.Animator;
-import android.animation.ObjectAnimator;
+import android.animation.AnimatorListenerAdapter;
 import android.app.Activity;
-import android.graphics.Color;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentStatePagerAdapter;
@@ -16,24 +19,49 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewAnimationUtils;
 import android.view.ViewGroup;
-import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.cos.jogger.R;
 import com.cos.jogger.activities.SlidingTabLayout;
+import com.cos.jogger.interfaces.IDurationUpdate;
+import com.cos.jogger.services.DurationTracker;
+import com.cos.jogger.utils.Logger;
 import com.cos.jogger.utils.Util;
 
-public class RecordFragment extends Fragment {
+public class RecordFragment extends Fragment implements IDurationUpdate {
+
+    private static final String TAG = RecordFragment.class.getSimpleName();
 
     private OnFragmentInteractionListener mListener;
+
+    DurationTracker mDurationTracker;
+    Intent mDurationTrackerServiceIntent;
+    boolean mDurationServiceBinded = false;
 
     ViewPagerAdapter mViewPagerAdapter;
     ViewPager mViewPager;
     SlidingTabLayout tabs;
-    RelativeLayout controlRootLayout;
+    RelativeLayout controlRootLayoutStart, controlRootLayoutPauseStop;
     TextView start, stop, pause, resume;
-    boolean started, enableStartClick, enablePauseClick, enableStopClick, enableResumeClick;
+
+
+    private ServiceConnection mDurationTrackerServiceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            Logger.d(TAG, "onServiceConnected");
+            DurationTracker.LocalBinder binder = (DurationTracker.LocalBinder) service;
+            mDurationTracker = binder.getServiceInstance();
+            mDurationServiceBinded = true;
+            mDurationTracker.registerLister(RecordFragment.this);
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            Logger.d(TAG, "onServiceDisconnected");
+            mDurationServiceBinded = false;
+        }
+    };
 
     public static Fragment newInstance() {
         RecordFragment fragment = new RecordFragment();
@@ -47,15 +75,16 @@ public class RecordFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
+        Logger.d(TAG, "onCreate");
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        Logger.d(TAG, "onCreateView");
         View view = inflater.inflate(R.layout.record_layout, container, false);
 
         //initialize view pager object
-        mViewPagerAdapter  = new ViewPagerAdapter(getChildFragmentManager());
+        mViewPagerAdapter = new ViewPagerAdapter(getChildFragmentManager());
 
         //get reference of views on the layout
         start = (TextView) view.findViewById(R.id.start);
@@ -64,7 +93,8 @@ public class RecordFragment extends Fragment {
         resume = (TextView) view.findViewById(R.id.resume);
         mViewPager = (ViewPager) view.findViewById(R.id.pager);
         tabs = (SlidingTabLayout) view.findViewById(R.id.tabs);
-        controlRootLayout = (RelativeLayout) view.findViewById(R.id.control_root_layout);
+        controlRootLayoutStart = (RelativeLayout) view.findViewById(R.id.control_root_layout_start);
+        controlRootLayoutPauseStop = (RelativeLayout) view.findViewById(R.id.control_root_layout_pasuse_stop);
 
         //set pager adapter
         mViewPager.setAdapter(mViewPagerAdapter);
@@ -83,28 +113,65 @@ public class RecordFragment extends Fragment {
         //add tabs to view pager
         tabs.setViewPager(mViewPager);
 
-        //initial background color
-        controlRootLayout.setBackgroundColor(Color.WHITE);
-
         initializeAllClickListeners();
+
+        mDurationTrackerServiceIntent = new Intent(getActivity(), DurationTracker.class);
 
         return view;
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+        Logger.d(TAG, "onResume");
+        //register listeners
+        if(mDurationTracker != null){
+            mDurationTracker.registerLister(RecordFragment.this);
+        }
+        //bind if not binded
+        if(!mDurationServiceBinded){
+                bindDurationTrackerService();
+        }
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        Logger.d(TAG, "onPause");
+        //unregister listners
+        if(mDurationTracker != null){
+            mDurationTracker.unRegisterLister();
+        }
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        //unbind if bind
+        if(mDurationServiceBinded) {
+            unbindDurationTrackerService();
+        }
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        Logger.d(TAG, "onDestroy");
+        //unbind if bind
+        if(mDurationServiceBinded) {
+            unbindDurationTrackerService();
+        }
+    }
+
     private void initializeAllClickListeners() {
-        enableStartClick = true;
 
         start.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(enableStartClick) {
-                    enableStartClick = false;
-                    enablePauseClick = true;
-                    enableStopClick = true;
-                    stop.setVisibility(View.VISIBLE);
-                    pause.setVisibility(View.VISIBLE);
-                    resume.setVisibility(View.GONE);
-                    animateBackgroundColorChange(controlRootLayout.getWidth() / 2, controlRootLayout.getHeight() / 2);
+                revealPauseStopLayout();
+                getActivity().startService(mDurationTrackerServiceIntent);
+                if(!mDurationServiceBinded) {
+                    bindDurationTrackerService();
                 }
             }
         });
@@ -112,26 +179,26 @@ public class RecordFragment extends Fragment {
         pause.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(enablePauseClick) {
-                    enablePauseClick = false;
-                    enableResumeClick = true;
-                    pause.setVisibility(View.GONE);
-                    resume.setVisibility(View.VISIBLE);
-                }
+                pause.setVisibility(View.GONE);
+                resume.setVisibility(View.VISIBLE);
+                mDurationTracker.pauseTimer();
             }
         });
 
         stop.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(enableStopClick) {
-                    enableStopClick = false;
-                    enablePauseClick = false;
-                    enableResumeClick = false;
-                    enableStartClick = true;
-                    resume.setVisibility(View.GONE);
-                    animateBackgroundColorChange((controlRootLayout.getWidth() - ((int) Util.dipToPixels(getActivity(), 30) + (stop.getWidth() / 2))),
-                            controlRootLayout.getHeight() / 2);
+                pause.setVisibility(View.VISIBLE);
+                resume.setVisibility(View.GONE);
+
+                controlRootLayoutStart.setVisibility(View.VISIBLE);
+                revealStartLayout();
+                mDurationTracker.stopTimer();
+
+                getActivity().stopService(mDurationTrackerServiceIntent);
+
+                if(HomeTab.timerTextView != null) {
+                    HomeTab.timerTextView.setText("00:00:00");
                 }
             }
         });
@@ -139,85 +206,86 @@ public class RecordFragment extends Fragment {
         resume.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(enableResumeClick) {
-                    enableResumeClick = false;
-                    enablePauseClick = true;
-                    resume.setVisibility(View.GONE);
-                    pause.setVisibility(View.VISIBLE);
-                }
+                resume.setVisibility(View.GONE);
+                pause.setVisibility(View.VISIBLE);
+                mDurationTracker.resumeTimer();
             }
         });
 
+        controlRootLayoutPauseStop.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                //to block start view to get click listeners when pause stop is visible
+            }
+        });
     }
 
-    private void animateBackgroundColorChange(int centerX, int centerY){
-        Animator layoutAnimator = null;
-        if(!started) {
-            started = true;
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                layoutAnimator = ViewAnimationUtils.createCircularReveal(
-                        controlRootLayout,
-                        centerX,
-                        centerY,
-                        0,
-                        (float) Math.hypot(controlRootLayout.getWidth(), controlRootLayout.getHeight()));
+    private void bindDurationTrackerService() {
+        getActivity().bindService(mDurationTrackerServiceIntent, mDurationTrackerServiceConnection, Context.BIND_AUTO_CREATE);
+    }
 
-            }else{
-                layoutAnimator = ObjectAnimator.ofInt(controlRootLayout,
-                        "backgroundColor",
-                        Color.parseColor("#ffffff"),
-                        Color.parseColor("#FF4081"));
-            }
+    private void unbindDurationTrackerService(){
+        mDurationServiceBinded = false;
+        getActivity().unbindService(mDurationTrackerServiceConnection);
+        mDurationTracker = null;
+    }
+
+    private void revealPauseStopLayout() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+            // get the center for the clipping circle
+            int cx = controlRootLayoutStart.getWidth() / 2;
+            int cy = controlRootLayoutStart.getHeight() / 2;
+
+            // get the final radius for the clipping circle
+            int finalRadius = (int) Math.hypot(controlRootLayoutStart.getWidth(), controlRootLayoutStart.getHeight());
+
+            // create the animator for this view (the start radius is zero)
+            Animator anim = ViewAnimationUtils.createCircularReveal(controlRootLayoutPauseStop, cx, cy, 0, finalRadius);
+
+            // make the view visible and start the animation
+            controlRootLayoutPauseStop.setVisibility(View.VISIBLE);
+            anim.setDuration(1000);
+            anim.start();
         }else{
-            started = false;
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                layoutAnimator = ViewAnimationUtils.createCircularReveal(
-                        controlRootLayout,
-                        centerX,
-                        centerY,
-                        (float) Math.hypot(controlRootLayout.getWidth(), controlRootLayout.getHeight()),
-                        0);
-            }else{
-                layoutAnimator = ObjectAnimator.ofInt(controlRootLayout,
-                        "backgroundColor",
-                        Color.parseColor("#FF4081"),
-                        Color.parseColor("#ffffff"));
-            }
-
+            controlRootLayoutStart.setVisibility(View.GONE);
+            controlRootLayoutPauseStop.setVisibility(View.VISIBLE);
         }
-        controlRootLayout.setVisibility(View.VISIBLE);
-        layoutAnimator.setInterpolator(new AccelerateDecelerateInterpolator());
-        if (controlRootLayout.getVisibility() == View.VISIBLE) {
-            layoutAnimator.setDuration(1000);
-            layoutAnimator.start();
-            controlRootLayout.setBackgroundColor(ContextCompat.getColor(getActivity(), R.color.colorAccent));
-            controlRootLayout.setEnabled(true);
-        }
-        layoutAnimator.addListener(new Animator.AnimatorListener() {
-            @Override
-            public void onAnimationStart(Animator animation) {
+    }
 
-            }
+    private void revealStartLayout() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+            // get the center for the clipping circle
+            int cx = (int) (controlRootLayoutStart.getWidth() - Util.dipToPixels(getActivity(), 50));
+            int cy = controlRootLayoutStart.getHeight() / 2;
 
-            @Override
-            public void onAnimationEnd(Animator animation) {
-                if (started) {
-                    controlRootLayout.setBackgroundColor(ContextCompat.getColor(getActivity(), R.color.colorAccent));
-                } else {
-                    controlRootLayout.setBackgroundColor(Color.WHITE);
+            // get the initial radius for the clipping circle
+            int initialRadius = controlRootLayoutStart.getWidth();
+
+            // create the animation (the final radius is zero)
+            Animator anim = null;
+
+            anim = ViewAnimationUtils.createCircularReveal(controlRootLayoutPauseStop, cx, cy, initialRadius, 0);
+
+            // make the view invisible when the animation is done
+            anim.addListener(new AnimatorListenerAdapter() {
+                @Override
+                public void onAnimationEnd(Animator animation) {
+                    super.onAnimationEnd(animation);
+                    controlRootLayoutPauseStop.setVisibility(View.GONE);
                 }
-            }
+            });
 
-            @Override
-            public void onAnimationCancel(Animator animation) {
+            // make the view visible and start the animation
+            controlRootLayoutStart.setVisibility(View.VISIBLE);
 
-            }
+            anim.setDuration(900);
 
-            @Override
-            public void onAnimationRepeat(Animator animation) {
-
-            }
-        });
+            // start the animation
+            anim.start();
+        }else{
+            controlRootLayoutStart.setVisibility(View.VISIBLE);
+            controlRootLayoutPauseStop.setVisibility(View.GONE);
+        }
     }
 
     // TODO: Rename method, update argument and hook method into UI event
@@ -244,12 +312,23 @@ public class RecordFragment extends Fragment {
         mListener = null;
     }
 
+    @Override
+    public void updateDuration(int hour, int min, int sec, int ms) {
+        Logger.d(TAG, "updateDuration");
+        if(HomeTab.timerTextView != null) {
+            HomeTab.timerTextView.setText("" + min + ":"
+                    + String.format("%02d", sec) + ":"
+                    + String.format("%03d", ms));
+        }
+    }
+
+
     public interface OnFragmentInteractionListener {
         // TODO: Update argument type and name
         public void onFragmentInteraction(Uri uri);
     }
 
-    class ViewPagerAdapter extends FragmentStatePagerAdapter{
+    class ViewPagerAdapter extends FragmentStatePagerAdapter {
 
         String title[] = {"Home", "Map"};
         int numOfTabs = 2;
@@ -260,12 +339,11 @@ public class RecordFragment extends Fragment {
 
         @Override
         public Fragment getItem(int position) {
-            if(position == 0) // if the position is 0 we are returning the First tab
+            if (position == 0) // if the position is 0 we are returning the First tab
             {
                 Fragment tab1 = HomeTab.newInstance();
                 return tab1;
-            }
-            else  // As we are having 2 tabs if the position is now 0 it must be 1 so we are returning second tab
+            } else  // As we are having 2 tabs if the position is now 0 it must be 1 so we are returning second tab
             {
                 Fragment tab2 = MapTab.newInstance();
                 return tab2;
