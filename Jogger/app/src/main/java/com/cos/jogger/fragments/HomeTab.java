@@ -10,6 +10,7 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import com.cos.jogger.R;
+import com.cos.jogger.services.DurationTracker;
 
 public class HomeTab extends Fragment {
 
@@ -41,6 +42,12 @@ public class HomeTab extends Fragment {
         View view = inflater.inflate(R.layout.home_tab, container, false);
         timerTextView = (TextView) view.findViewById(R.id.timer);
         timermsTextView = (TextView) view.findViewById(R.id.timerms);
+        if(DurationTracker.mRecorder != null) {
+            timerTextView.setText("" + DurationTracker.mRecorder.getHour() + ":"
+                    + String.format("%02d", DurationTracker.mRecorder.getMinute()) + ":"
+                    + String.format("%02d", DurationTracker.mRecorder.getSecond()));
+            timermsTextView.setText(""+DurationTracker.mRecorder.getMilliseconds());
+        }
         return view;
     }
 

@@ -25,6 +25,7 @@ import android.widget.TextView;
 import com.cos.jogger.R;
 import com.cos.jogger.activities.SlidingTabLayout;
 import com.cos.jogger.interfaces.IDurationUpdate;
+import com.cos.jogger.models.Recorder;
 import com.cos.jogger.services.DurationTracker;
 import com.cos.jogger.utils.Logger;
 import com.cos.jogger.utils.Util;
@@ -131,6 +132,16 @@ public class RecordFragment extends Fragment implements IDurationUpdate {
         //bind if not binded
         if(!mDurationServiceBinded){
                 bindDurationTrackerService();
+        }
+
+        if(DurationTracker.mRecorder != null){
+            if(DurationTracker.mRecorder.getState().equals(Recorder.State.Running)){
+                controlRootLayoutPauseStop.setVisibility(View.VISIBLE);
+            }else if(DurationTracker.mRecorder.getState().equals(Recorder.State.Paused)){
+                controlRootLayoutPauseStop.setVisibility(View.VISIBLE);
+                pause.setVisibility(View.GONE);
+                resume.setVisibility(View.VISIBLE);
+            }
         }
     }
 
@@ -321,6 +332,12 @@ public class RecordFragment extends Fragment implements IDurationUpdate {
                     + String.format("%02d", min) + ":"
                     + String.format("%02d", sec));
             HomeTab.timermsTextView.setText(""+ms);
+        }
+        if(DurationTracker.mRecorder != null) {
+            DurationTracker.mRecorder.setHour(hour);
+            DurationTracker.mRecorder.setMinute(min);
+            DurationTracker.mRecorder.setSecond(sec);
+            DurationTracker.mRecorder.setMilliseconds(ms);
         }
     }
 

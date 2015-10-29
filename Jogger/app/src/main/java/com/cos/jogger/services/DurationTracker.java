@@ -1,9 +1,12 @@
 package com.cos.jogger.services;
 
 import android.app.Notification;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
@@ -13,9 +16,12 @@ import android.support.v7.app.NotificationCompat;
 import com.cos.jogger.R;
 import com.cos.jogger.activities.HomeActivity;
 import com.cos.jogger.interfaces.IDurationUpdate;
+import com.cos.jogger.models.Recorder;
 import com.cos.jogger.utils.Logger;
 
 public class DurationTracker extends Service {
+
+    public static Recorder mRecorder;
 
     private static final String TAG = DurationTracker.class.getSimpleName();
     private static final int NOTIFICATION_ID = 9000;
@@ -53,6 +59,10 @@ public class DurationTracker extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Logger.d(TAG, "onStartCommand");
+        if(mRecorder == null) {
+            mRecorder = new Recorder();
+        }
+
         runAsForeground();
 
         startTimer();
@@ -83,6 +93,8 @@ public class DurationTracker extends Service {
 
     private void startTimer(){
         Logger.d(TAG, "startTimer");
+        mRecorder.setState(Recorder.State.Running);
+
         startTime = SystemClock.uptimeMillis();
         if(customHandler == null) {
             customHandler = new Handler();
@@ -92,24 +104,34 @@ public class DurationTracker extends Service {
 
     public void resumeTimer(){
         Logger.d(TAG, "resumeTimer");
+        mRecorder.setState(Recorder.State.Running);
         startTime = SystemClock.uptimeMillis();
         customHandler.postDelayed(stopWatch, 0);
     }
 
     public void pauseTimer(){
         Logger.d(TAG, "pauseTimer");
+        mRecorder.setState(Recorder.State.Paused);
         timeSwapBuff += timeInMilliseconds;
         customHandler.removeCallbacks(stopWatch);
     }
 
     public void stopTimer(){
         Logger.d(TAG, "stopTimer");
+        mRecorder = null;
+        cancelNotification(this, NOTIFICATION_ID);
         customHandler.removeCallbacks(stopWatch);
         startTime = 0L;
         timeInMilliseconds = 0L;
         timeSwapBuff = 0L;
         updatedTime = 0L;
         updateTimer.updateDuration(00, 00, 00, 00);
+    }
+
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
     }
 
     //returns the instance of the service
@@ -125,6 +147,7 @@ public class DurationTracker extends Service {
                 notificationIntent, Intent.FLAG_ACTIVITY_NEW_TASK);
 
         Notification notification=new NotificationCompat.Builder(this)
+                .setColor(Color.BLUE)
                 .setSmallIcon(R.drawable.nav_settings)
                 .setContentTitle("Tracking...")
                 .setContentText("Keep running !")
@@ -132,5 +155,11 @@ public class DurationTracker extends Service {
 
         startForeground(NOTIFICATION_ID, notification);
 
+    }
+
+    public static void cancelNotification(Context ctx, int notifyId) {
+        String ns = Context.NOTIFICATION_SERVICE;
+        NotificationManager nMgr = (NotificationManager) ctx.getSystemService(ns);
+        nMgr.cancel(notifyId);
     }
 }

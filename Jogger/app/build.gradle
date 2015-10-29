@@ -19,7 +19,11 @@ android {
     }
 }
 
-repositories { mavenCentral() }
+repositories { mavenCentral()
+    maven {
+        url "https://jitpack.io"
+    }
+}
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
@@ -29,4 +33,7 @@ dependencies {
     compile 'com.android.support:design:23.0.1'
     compile 'com.facebook.android:facebook-android-sdk:4.6.0'
     compile 'de.hdodenhof:circleimageview:1.3.0'
+    compile 'com.edmodo:cropper:1.0.1'
+    compile 'com.albinmathew:photo-crop-library:1.0.3'
+    compile project(':crop-image-lib')
 }
